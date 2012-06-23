@@ -1,0 +1,23 @@
+name: LevelUp
+author: jonadead
+main: fr.jonadead.LevelUp.LevelUp
+version: 1.0
+commands:
+  level see [player]:
+    description: Pour voir votre niveau ou celui d'un joueur.
+    usage: /<command> [player]
+  level xp [player]:
+    description: Pour voir votre xp ou celui d'un autre joueur.
+    usage: /<command> [player]
+  level up [player]:
+    description: Pour vous augmenter d'un level ou un autre joueur.
+    usage: /<command> [player]
+  level down [player]:
+    description: Pour vous diminuer d'un level ou un autre joueur.
+    usage: /<command> [player]
+  level set [player] <level>:
+    description: Pour vous assigner un level ou a un autre joueur.
+    usage: /<command> [player] <level>
+  level give [player] <level>:
+    description: Pour vous give un level ou a un autre joueur.
+    usage: /<command> [player] <level>
