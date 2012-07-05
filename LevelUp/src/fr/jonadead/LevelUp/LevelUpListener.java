@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -18,18 +19,24 @@ public class LevelUpListener implements Listener{
 	private LevelUp plugin;
 	Logger log = Logger.getLogger("Minecraft");
 	private boolean levelchangebyplugin = false;
+	private boolean LevelIsSet;
+	private FileConfiguration config;
+	
 	
 	public LevelUpListener(LevelUp plugin){
 		this.plugin = plugin;
+		config = plugin.getConfig();
+		checkconfig();
 	}
-	
+
+
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onPlayerLevelChange(PlayerLevelChangeEvent e){
 		Player p = e.getPlayer();
 		
 	    if(e.getOldLevel() < e.getNewLevel()){
 	    	if(!levelchangebyplugin){
-	    		p.sendMessage(ChatColor.GOLD + "Level Up !");
+	    		p.sendMessage(config.getString("LevelUp"));
 	    	}
 	    	else levelchangebyplugin = false;
 	    }
@@ -40,7 +47,7 @@ public class LevelUpListener implements Listener{
 	public void onEntityDeath(EntityDeathEvent e){
         if(e.getEntity() instanceof Player){
         	Player p = (Player) e.getEntity();
-        	p.sendMessage(ChatColor.GOLD + "Vous êtes mort ! Vos levels ont étés reset !");
+        	p.sendMessage(config.getString("PlayerDeath"));
         }  
 	}
 	
@@ -52,6 +59,25 @@ public class LevelUpListener implements Listener{
 		
 		String[] params = message.split(" ");
 		
+		if(params[0].equalsIgnoreCase("/reload")){
+			e.setCancelled(true);
+			log.info("[PLAYER_COMMAND] " + p.getName() + ": " + message);
+			
+			if(params.length == 2){
+				
+				if(params[1].equalsIgnoreCase("levelup")){
+					
+					if(!plugin.hasPermission(p, "LevelUp.reload")){
+						p.sendMessage(config.getString("Errors.noperms"));
+						return;
+					}
+					plugin.reloadConfig();
+					p.sendMessage(ChatColor.GREEN + "LevelUp reload !");
+					return;
+				}
+			}
+		}
+		
 		if(params[0].equalsIgnoreCase("/level")){
 			e.setCancelled(true);
 			log.info("[PLAYER_COMMAND] " + p.getName() + ": " + message);
@@ -61,51 +87,51 @@ public class LevelUpListener implements Listener{
 				if(params[1].equalsIgnoreCase("see")){
 				
 					if(!plugin.hasPermission(p, "LevelUp.level.see")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 				
-					p.sendMessage(ChatColor.GREEN + "Vous avez: " + ChatColor.WHITE + p.getLevel() + " Level" + (p.getLevel() > 1 ? "s":""));
+					p.sendMessage(config.getString("Level.see.self").replace("{LEVEL}", "" + p.getLevel()));
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("up")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.up")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 					
 					setlevel(p.getLevel() + 1, p);
-					p.sendMessage(ChatColor.GREEN + "Vous avez gagné un level !");
+					p.sendMessage(config.getString("Level.up.self"));
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("down")){
 					if(!plugin.hasPermission(p, "LevelUp.level.down")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 					
 					setlevel(p.getLevel() - 1, p);
 					
-					if(p.getLevel()<0){
+					if(!LevelIsSet){
 						p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
 						return;
 					}
 					
-					p.sendMessage(ChatColor.GREEN + "Vous avez perdu un level !");
+					p.sendMessage(config.getString("Level.down.self"));
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("xp")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.xp")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 					
-					p.sendMessage(ChatColor.GREEN + "Vous avez " + ChatColor.WHITE + p.getExp() + " Xp" + (p.getExp() > 1 ? "s":""));
+					p.sendMessage(config.getString("Level.xp.self").replace("{XP}", "" + p.getExp()));
 					return;
 				}
 				
@@ -116,43 +142,43 @@ public class LevelUpListener implements Listener{
 				if(params[1].equalsIgnoreCase("set")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.set")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 
 					setlevel(params[2], p, p);
 					
-					if(p.getLevel()<0){
+					if(!LevelIsSet){
 						p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
 						return;
 					}
 					
-					p.sendMessage(ChatColor.GREEN + "Vous êtes au level " + p.getLevel());
+					p.sendMessage(config.getString("Level.set.self").replace("{LEVEL}", "" + p.getLevel()));
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("give")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.give")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 				
 					setlevel(params[2], p, p);
 					
-					if(p.getLevel() < 0){
+					if(!LevelIsSet){
 						p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
 						return;
 					}
 					
-					p.sendMessage(ChatColor.GREEN + "Vous êtes au level "+ p.getLevel());
+					p.sendMessage(config.getString("Level.give.self").replace("{LEVEL}", "" + p.getLevel()));
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("see")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.see.other")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 					
@@ -161,10 +187,10 @@ public class LevelUpListener implements Listener{
 						
 						if(player.getPlayer() != null){
 							 int playerlevel = player.getPlayer().getLevel();
-							 p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.GREEN + " a : " + ChatColor.WHITE + playerlevel + " Level" + (playerlevel > 1 ? "s":""));
+							 p.sendMessage(config.getString("Level.see.others").replace("{PLAYER}", "" + player.getName()).replace("{LEVEL}", "" + playerlevel));
 						 }
 						 else{
-						 	 p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " n'est pas connecté ou n'existe pas.");
+						 	 p.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
 						 }
 					}
 					return;
@@ -172,46 +198,55 @@ public class LevelUpListener implements Listener{
 				
 				else if(params[1].equalsIgnoreCase("up")){
 					if(!plugin.hasPermission(p, "LevelUp.level.up.other")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 				
 				
 					if(Bukkit.getOfflinePlayer(params[2]) != null){
 						OfflinePlayer player = Bukkit.getOfflinePlayer(params[2]);
-						setlevel(((Player) player).getLevel() + 1, p);
+						
 							
-						((Player) player).sendMessage(ChatColor.DARK_RED + p.getName() + ChatColor.GREEN + " vous a fait gagner un level !");
-						p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.GREEN + " a gagné un level !");
+						if(player.getPlayer() != null){
+							setlevel(player.getPlayer().getLevel() + 1, p);
+							player.getPlayer().sendMessage(config.getString("Level.up.others.receiver").replace("{PLAYER}", "" + p.getName()));
+							p.sendMessage(config.getString("Level.up.others.sender").replace("{PLAYER}", "" + player.getName()));
+						}else{
+							 p.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
+						}
+						
 					}
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("down")){
 					if(!plugin.hasPermission(p, "LevelUp.level.down.other")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 				
 					if(Bukkit.getOfflinePlayer(params[2]) != null){
 						OfflinePlayer player = Bukkit.getOfflinePlayer(params[2]);
-					
-						setlevel(((Player) player).getLevel() - 1, p);
 						
-						if(((Player) player).getLevel()<0){
-							p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
-							return;
+						if(player.getPlayer() != null){
+							setlevel(player.getPlayer().getLevel() - 1, p);
+							if(!LevelIsSet){
+								p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
+								return;
+							}
+							player.getPlayer().sendMessage(config.getString("Level.down.others.receiver").replace("{PLAYER}", "" + p.getName()));
+							p.sendMessage(config.getString("Level.down.others.sender").replace("{PLAYER}", "" + player.getName()));
+						}else{
+							 p.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
 						}
 						
-						((Player) player).sendMessage(ChatColor.DARK_RED + p.getName() + ChatColor.GREEN + " vous a fait perdre un level !");
-						p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.GREEN + " a perdu un level !");
 					}
 					return;
 				}
 				
 				else if(params[1].equalsIgnoreCase("xp")){
 					if(!plugin.hasPermission(p, "LevelUp.level.xp.other")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 				
@@ -220,9 +255,9 @@ public class LevelUpListener implements Listener{
 						OfflinePlayer player = Bukkit.getOfflinePlayer(params[2]);
 						
 						 if(player.getPlayer() != null){
-							 p.sendMessage(ChatColor.DARK_RED + player.getName() +" a " + ChatColor.WHITE + p.getExp() + " Xp" + (p.getExp() > 1 ? "s":""));
+							 p.sendMessage(config.getString("Level.xp.others").replace("{PLAYER}", "" + player.getName()).replace("{XP}", "" + player.getPlayer().getExp()));
 						 }else{
-							 p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " n'est pas connecté ou n'existe pas.");
+							 p.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
 						}
 					}
 					return;
@@ -233,22 +268,29 @@ public class LevelUpListener implements Listener{
 				if(params[1].equalsIgnoreCase("set")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.set.other")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 					
 					if (Bukkit.getOfflinePlayer(params[2]) != null){
 						
 						OfflinePlayer player = Bukkit.getOfflinePlayer(params[2]);
-						setlevel(params[3], player, p);
+												
+						if(player.getPlayer() != null){
 							
-						if(((Player) player).getLevel() < 0){
-							p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
-							return;
+							setlevel(params[3], player, p);
+							
+							if(!LevelIsSet){
+								p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
+								return;
+							}
+
+							
+							player.getPlayer().sendMessage(config.getString("Level.set.others.receiver").replace("{PLAYER}", "" + p.getName()).replace("{LEVEL}", "" + player.getPlayer().getLevel()));
+							p.sendMessage(config.getString("Level.set.others.sender").replace("{PLAYER}", "" + p.getName()).replace("{LEVEL}", "" + player.getPlayer().getLevel()));
+						}else{
+							 p.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
 						}
-							
-						((Player) player).sendMessage(ChatColor.DARK_RED + p.getName() + ChatColor.GREEN + " vous a mis au level " + ChatColor.WHITE + ((Player) player).getLevel());
-						p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.GREEN + " est maintenant au level "+ ChatColor.WHITE + ((Player) player).getLevel());
 					}
 					return;
 				}
@@ -256,28 +298,34 @@ public class LevelUpListener implements Listener{
 				else if(params[1].equalsIgnoreCase("give")){
 					
 					if(!plugin.hasPermission(p, "LevelUp.level.give.other")){
-						p.sendMessage(ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+						p.sendMessage(config.getString("Errors.noperms"));
 						return;
 					}
 				
 				
 					if (Bukkit.getOfflinePlayer(params[2]) != null){
 						OfflinePlayer player = Bukkit.getOfflinePlayer(params[2]);
-						setlevel(params[3], player, p);
 						
-						if(((Player) player).getLevel() < 0){
-							p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
-							return;
+						if(player.getPlayer() != null){
+							
+							setlevel(params[3], player, p);
+							if(!LevelIsSet){
+								p.sendMessage(ChatColor.RED + "Nombre de level invalide !");
+								return;
+							}
+							
+							player.getPlayer().sendMessage(config.getString("Level.give.others.receiver").replace("{PLAYER}", "" + p.getName()).replace("{LEVEL}", "" + player.getPlayer().getLevel()));
+							p.sendMessage(config.getString("Level.set.others.sender").replace("{PLAYER}", "" + p.getName()).replace("{LEVEL}", "" + player.getPlayer().getLevel()));
+						}else{
+							 p.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
 						}
 						
-						((Player) player).sendMessage(ChatColor.DARK_RED + p.getName() + ChatColor.GREEN + " vous a mis au level " + ChatColor.WHITE + ((Player) player).getLevel());
-						p.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.GREEN + " est maintenant au level "+ ChatColor.WHITE + ((Player) player).getLevel());
 					}
 					return;
 				}
 			}
+			p.sendMessage(config.getString("Errors.invalidcommand").replace("{COMMAND}", "/help LevelUp"));
 		}
-		p.sendMessage(ChatColor.RED + "Commande Invalide ! Tapez /help LevelUp pour voir la liste des commandes.");
 	}
 	
 	public void setlevel(String level, OfflinePlayer player, Player sender){
@@ -292,13 +340,105 @@ public class LevelUpListener implements Listener{
 			setlevel(levelint, (Player) player);
 		}
 		else{
-			sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " n'est pas connecté ou n'existe pas.");
+			sender.sendMessage(config.getString("Errors.notconnectedplayer").replace("{PLAYER}", "" + player.getName()));
 		}
 	}
 	
 	public void setlevel(int level, Player p){
-		if(level<0) return;
+		if(level < 0 || level > 32767){
+			LevelIsSet = false;
+			return;
+		}else LevelIsSet = true;
 		levelchangebyplugin = true;
 		p.setLevel(level);
+	}
+	
+	private void checkconfig() {
+		
+		if(config.getString("LevelUp") == null){
+			config.set("LevelUp", ChatColor.GOLD + "Level Up !");
+		}
+		
+		if(config.getString("PlayerDeath") == null){
+			config.set("PlayerDeath", ChatColor.GOLD + "Vous êtes mort ! Vos levels ont étés reset !");
+		}
+		
+		if(config.getString("Level.see.self") == null){
+			config.set("Level.see.self", ChatColor.GREEN + "Vous avez : " + ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + " Level.");
+		}
+		
+		if(config.getString("Level.up.self") == null){
+			config.set("Level.up.self", ChatColor.GREEN + "Vous avez gagné un level !");
+		}
+		
+		if(config.getString("Level.down.self") == null){
+			config.set("Level.down.self", ChatColor.GREEN + "Vous avez perdu un level !");
+		}
+		
+		if(config.getString("Level.xp.self") == null){
+			config.set("Level.xp.self", ChatColor.GREEN + "Vous avez " + ChatColor.WHITE + "{XP}" + ChatColor.GREEN + " Xp.");
+		}
+		
+		if(config.getString("Level.set.self") == null){
+			config.set("Level.set.self", ChatColor.GREEN + "Vous êtes maintenant au level " + ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + ".");
+		}
+		
+		if(config.getString("Level.give.self") == null){
+			config.set("Level.give.self", ChatColor.GREEN + "Vous êtes maintenant au level " + ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + ".");
+		}
+		
+		if(config.getString("Level.see.others") == null){
+			config.set("Level.see.others", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " a : " + ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN +" Level");
+		}
+		
+		if(config.getString("Level.up.others.sender") == null){
+			config.set("Level.up.others.sender", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " a gagné un level !");
+		}
+		
+		if(config.getString("Level.up.others.receiver") == null){
+			config.set("Level.up.others.receiver",  ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " vous a fait gagner un level !");
+		}
+		
+		if(config.getString("Level.down.others.sender") == null){
+			config.set("Level.down.others.sender", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " a perdu un level !");
+		}
+		
+		if(config.getString("Level.down.others.receiver") == null){
+			config.set("Level.down.others.receiver", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " vous a fait perdre un level !");
+		}
+		
+		if(config.getString("Level.xp.others") == null){
+			config.set("Level.xp.others", ChatColor.DARK_RED + "{PLAYER}" +  ChatColor.GREEN + " a " + ChatColor.WHITE + "{XP}" +  ChatColor.GREEN +" Xp.");
+		}
+		
+		if(config.getString("Level.set.others.sender") == null){
+			config.set("Level.set.others.sender", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " est maintenant au level "+ ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + ".");
+		}
+		
+		if(config.getString("Level.set.others.receiver") == null){
+			config.set("Level.set.others.receiver", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " vous a mis au level " + ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + ".");
+		}
+		
+		if(config.getString("Level.give.others.sender") == null){
+			config.set("Level.give.others.sender", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " est maintenant au level "+ ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + ".");
+		}
+		
+		if(config.getString("Level.give.others.receiver") == null){
+			config.set("Level.give.others.receiver", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.GREEN + " vous a mis au level " + ChatColor.WHITE + "{LEVEL}" + ChatColor.GREEN + ".");
+		}
+		
+		if(config.getString("Errors.noperms") == null){
+			config.set("Errors.noperms", ChatColor.RED + "Vous n'avez pas les permissions pour cette commande !");
+		}
+		
+		if(config.getString("Errors.notconnectedplayer") == null){
+			config.set("Errors.notconnectedplayer", ChatColor.DARK_RED + "{PLAYER}" + ChatColor.RED + " n'est pas connecté ou n'existe pas.");
+		}
+		
+		if(config.getString("Errors.invalidcommand") == null){
+			config.set("Errors.invalidcommand", ChatColor.RED + "Commande Invalide ! Tapez {COMMAND} pour voir la liste des commandes.");
+		}
+		
+		plugin.saveConfig();
 	}
 }

@@ -1,6 +1,5 @@
 package fr.jonadead.LevelUp;
 
-import java.util.logging.Logger;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -11,7 +10,6 @@ public class LevelUp extends JavaPlugin{
 	@SuppressWarnings("unused")
 	private LevelUpListener listener;
 	public PermissionManager pManager;
-	Logger log;
 	
 	@Override
 	public void onDisable() {
@@ -28,7 +26,6 @@ public class LevelUp extends JavaPlugin{
 		PluginManager pm = getServer().getPluginManager();
 		
 		pm.registerEvents(new LevelUpListener(this), this);
-		
 	}
 	
 	public boolean hasPermission(Player p, String perm){
